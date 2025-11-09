@@ -1,228 +1,135 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
-import { userApi } from '@/lib/api';
+import { useQuery, useMutation, useSubscription, gql } from '@apollo/client';
+import axios from 'axios';
 
-// GraphQL queries and mutations
-const GET_POSTS = gql`
-  query GetPosts {
-    posts {
+const GET_TASKS = gql`
+  query GetTasks {
+    tasks {
       id
       title
-      content
-      author
-      createdAt
+      status
+      teamId
     }
   }
 `;
 
-const CREATE_POST = gql`
-  mutation CreatePost($title: String!, $content: String!, $author: String!) {
-    createPost(title: $title, content: $content, author: $author) {
+const CREATE_TASK = gql`
+  mutation CreateTask($title: String!, $teamId: String!) {
+    createTask(title: $title, teamId: $teamId) {
       id
       title
-      content
-      author
-      createdAt
+      status
+    }
+  }
+`;
+
+const TASK_CREATED_SUB = gql`
+  subscription OnTaskCreated {
+    taskCreated {
+      id
+      title
+      status
     }
   }
 `;
 
 export default function Home() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [newUser, setNewUser] = useState({ name: '', email: '', age: '' });
-  const [newPost, setNewPost] = useState({ title: '', content: '', author: '' });
+  const [token, setToken] = useState('');
+  const [email, setEmail] = useState('john@example.com');
+  const [password, setPassword] = useState('adminpassword');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [user, setUser] = useState<any>(null);
 
-  // GraphQL queries
-  const { data: postsData, loading: postsLoading, refetch: refetchPosts } = useQuery(GET_POSTS);
-  const [createPost] = useMutation(CREATE_POST);
-
-  // Fetch users from REST API
   useEffect(() => {
-    fetchUsers();
+    const savedToken = localStorage.getItem('token');
+    if (savedToken) setToken(savedToken);
   }, []);
 
-  const fetchUsers = async () => {
-    try {
-      const response = await userApi.getUsers();
-      setUsers(response.data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: taskData, loading, refetch } = useQuery(GET_TASKS, {
+    skip: !token,
+  });
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const [createTask] = useMutation(CREATE_TASK);
+
+  useSubscription(TASK_CREATED_SUB, {
+    onData: ({ data }) => {
+      alert(`⚡ New Task Created: ${data.data.taskCreated.title}`);
+      refetch();
+    }
+  });
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await userApi.createUser({
-        name: newUser.name,
-        email: newUser.email,
-        age: parseInt(newUser.age)
-      });
-      setNewUser({ name: '', email: '', age: '' });
-      fetchUsers();
-    } catch (error) {
-      console.error('Error creating user:', error);
+      const res = await axios.post('http://localhost:3000/api/users/login', { email, password });
+      localStorage.setItem('token', res.data.token);
+      setToken(res.data.token);
+      setUser(res.data.user);
+      alert('Login Berhasil!');
+      window.location.reload();
+    } catch (err) {
+      alert('Login Gagal!');
     }
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.reload();
+  };
+
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newTaskTitle) return;
     try {
-      await createPost({
-        variables: newPost,
-      });
-      setNewPost({ title: '', content: '', author: '' });
-      refetchPosts();
-    } catch (error) {
-      console.error('Error creating post:', error);
+        await createTask({ variables: { title: newTaskTitle, teamId: user?.teamId || 'team-A' } });
+        setNewTaskTitle('');
+    } catch (err) {
+        console.error(err);
+        alert("Gagal membuat task! Cek console browser.");
     }
   };
 
-  const handleDeleteUser = async (id: string) => {
-    try {
-      await userApi.deleteUser(id);
-      fetchUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-    }
-  };
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded shadow-md w-96">
+          <h1 className="text-2xl font-bold mb-6 text-center">Login UTS</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input className="w-full border p-2 rounded" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+            <input className="w-full border p-2 rounded" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+            <button className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Login (Dapat Token)</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-center text-gray-900 mb-12">
-          Microservices Demo App
-        </h1>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Users Section (REST API) */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Users (REST API)</h2>
-            
-            {/* Create User Form */}
-            <form onSubmit={handleCreateUser} className="mb-6">
-              <div className="grid grid-cols-1 gap-4">
-                <input
-                  type="text"
-                  placeholder="Name"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                  className="border rounded-md px-3 py-2"
-                  required
-                />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="border rounded-md px-3 py-2"
-                  required
-                />
-                <input
-                  type="number"
-                  placeholder="Age"
-                  value={newUser.age}
-                  onChange={(e) => setNewUser({ ...newUser, age: e.target.value })}
-                  className="border rounded-md px-3 py-2"
-                  min="1"
-                  max="150"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-                >
-                  Add User
-                </button>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Task Manager UTS 🚀</h1>
+          <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+            <h2 className="text-xl font-semibold mb-4">Create New Task</h2>
+          <form onSubmit={handleCreateTask} className="flex gap-4">
+            <input type="text" placeholder="Task title..." className="flex-1 border p-2 rounded" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} />
+            <button type="submit" className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">Add Task</button>
+          </form>
+        </div>
+        <div className="grid gap-4">
+          {loading ? <p>Loading tasks...</p> : taskData?.tasks.map((task: any) => (
+            <div key={task.id} className="bg-white p-4 rounded shadow border-l-4 border-blue-500 flex justify-between">
+              <div>
+                  <h3 className="font-bold">{task.title}</h3>
+                  <p className="text-sm text-gray-500">Team: {task.teamId}</p>
               </div>
-            </form>
-
-            {/* Users List */}
-            {loading ? (
-              <p>Loading users...</p>
-            ) : (
-              <div className="space-y-4">
-                {users.map((user: any) => (
-                  <div key={user.id} className="flex justify-between items-center p-3 border rounded">
-                    <div>
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-gray-600 text-sm">{user.email}</p>
-                      <p className="text-gray-500 text-xs">Age: {user.age} • {user.role}</p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteUser(user.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Posts Section (GraphQL) */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Posts (GraphQL)</h2>
-            
-            {/* Create Post Form */}
-            <form onSubmit={handleCreatePost} className="mb-6">
-              <div className="grid grid-cols-1 gap-4">
-                <input
-                  type="text"
-                  placeholder="Title"
-                  value={newPost.title}
-                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                  className="border rounded-md px-3 py-2"
-                  required
-                />
-                <textarea
-                  placeholder="Content"
-                  value={newPost.content}
-                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                  className="border rounded-md px-3 py-2 h-24"
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Author"
-                  value={newPost.author}
-                  onChange={(e) => setNewPost({ ...newPost, author: e.target.value })}
-                  className="border rounded-md px-3 py-2"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-                >
-                  Add Post
-                </button>
-              </div>
-            </form>
-
-            {/* Posts List */}
-            {postsLoading ? (
-              <p>Loading posts...</p>
-            ) : (
-              <div className="space-y-4">
-                {postsData?.posts.map((post: any) => (
-                  <div key={post.id} className="p-4 border rounded">
-                    <h3 className="font-semibold text-lg">{post.title}</h3>
-                    <p className="text-gray-600 mt-2">{post.content}</p>
-                    <div className="flex justify-between items-center mt-3 text-sm text-gray-500">
-                      <span>By: {post.author}</span>
-                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs h-fit">{task.status}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
