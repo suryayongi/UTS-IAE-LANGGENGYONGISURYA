@@ -205,7 +205,6 @@ router.post('/login', (req, res) => {
   const user = users.find(u => u.email === email);
 
   // 2. Cek apakah user ada DAN password cocok
-  // (Note: di production harusnya pakai hashing, ini plain text untuk demo UTS)
   if (!user || user.password !== password) {
     return res.status(401).json({
       error: 'Authentication failed',
@@ -222,7 +221,6 @@ router.post('/login', (req, res) => {
   };
 
   // 4. Generate JWT Token dengan Private Key
-  // Algoritma RS256 artinya menggunakan RSA Key Pair
   const token = jwt.sign(tokenPayload, privateKey, {
     algorithm: 'RS256',
     expiresIn: '1h' // Token kadaluwarsa dalam 1 jam

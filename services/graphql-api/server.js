@@ -127,7 +127,8 @@ const resolvers = {
     // Logika hapus task
     deleteTask: (_, { id }, context) => { // 1. Terima 'context'
       // 2. Cek Role dari JWT Token
-      if (context.user.role !== 'admin') {
+      // PERBAIKAN: Pastikan context.user ada sebelum cek role
+      if (!context.user || context.user.role !== 'admin') {
         throw new Error('Unauthorized! Only admins can delete tasks.');
       }
     
@@ -180,10 +181,19 @@ async function startServer() {
   // Setup Apollo Server dengan plugin agar shutdown rapi
   const server = new ApolloServer({
     schema,
-    // TAMBAHAN BARU:
+    // PERBAIKAN: Baca data user dari header kustom yang dikirim Gateway
     context: ({ req }) => {
-      // Ambil data user yang sudah diverifikasi oleh Gateway
-      return { user: req.user };
+      const userDataHeader = req.headers['x-user-data'];
+      if (userDataHeader) {
+        try {
+          const user = JSON.parse(userDataHeader);
+          return { user };
+        } catch (error) {
+          console.error('Error parsing x-user-data header:', error);
+          return {};
+        }
+      }
+      return {};
     },
     plugins: [
       // Plugin untuk menutup HTTP server saat dimatikan
@@ -222,8 +232,6 @@ app.get('/health', (req, res) => {
     service: 'graphql-api',
     timestamp: new Date().toISOString(),
     data: {
-      // posts: posts.length, // DIUBAH
-      // comments: comments.length // DIUBAH
       tasks: tasks.length
     }
   });

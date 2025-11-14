@@ -26,6 +26,14 @@ const CREATE_TASK = gql`
   }
 `;
 
+// --- TAMBAHAN BARU ---
+const DELETE_TASK = gql`
+  mutation DeleteTask($id: ID!) {
+    deleteTask(id: $id)
+  }
+`;
+// ---------------------
+
 // Subscription untuk notifikasi real-time
 const TASK_CREATED_SUB = gql`
   subscription OnTaskCreated {
@@ -39,8 +47,8 @@ const TASK_CREATED_SUB = gql`
 
 export default function Home() {
   const [token, setToken] = useState('');
-  const [email, setEmail] = useState('john@example.com');
-  const [password, setPassword] = useState('adminpassword');
+  const [email, setEmail] = useState(''); // DIKOSONGKAN
+  const [password, setPassword] = useState(''); // DIKOSONGKAN
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [user, setUser] = useState<any>(null);
 
@@ -49,10 +57,14 @@ export default function Home() {
   const [name, setName] = useState('');
   // ---------------------
 
-  // Cek apakah sudah login saat buka web
+  // Cek apakah sudah login saat buka web (DIMODIFIKASI)
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
-    if (savedToken) setToken(savedToken);
+    const savedUser = localStorage.getItem('user'); // Ambil data user
+    if (savedToken && savedUser) {
+      setToken(savedToken);
+      setUser(JSON.parse(savedUser)); // Simpan data user ke state
+    }
   }, []);
 
   // GraphQL Hooks
@@ -61,6 +73,13 @@ export default function Home() {
   });
 
   const [createTask] = useMutation(CREATE_TASK);
+
+  // --- TAMBAHAN BARU ---
+  const [deleteTask] = useMutation(DELETE_TASK, {
+    onCompleted: () => refetch(), // Refresh data setelah hapus
+    onError: (error) => alert(error.message) // Tampilkan error jika (user biasa)
+  });
+  // ---------------------
 
   // Langsung listen subscription
   useSubscription(TASK_CREATED_SUB, {
@@ -82,6 +101,7 @@ export default function Home() {
       
       const receivedToken = res.data.token;
       localStorage.setItem('token', receivedToken); // Simpan token di browser
+      localStorage.setItem('user', JSON.stringify(res.data.user)); // <-- TAMBAHAN INI
       setToken(receivedToken);
       setUser(res.data.user);
       alert('Login Berhasil!');
@@ -94,6 +114,7 @@ export default function Home() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user'); // <-- TAMBAHAN INI
     setToken('');
     setUser(null);
     window.location.reload();
@@ -136,6 +157,20 @@ export default function Home() {
       alert('Gagal buat task. Pastikan token valid.');
     }
   };
+
+  // --- FUNGSI BARU ---
+  const handleDeleteTask = async (taskId: string) => {
+    if (confirm('Yakin mau hapus task ini? (Hanya Admin)')) {
+      try {
+        await deleteTask({ variables: { id: taskId } });
+      } catch (err: any) {
+        console.error('Error deleting task:', err);
+        alert(err.message); // Akan muncul error 'Unauthorized' jika user biasa
+      }
+    }
+  };
+  // -------------------
+
 
   // --- TAMPILAN KALO BELUM LOGIN (SUDAH DIMODIFIKASI) ---
   if (!token) {
@@ -202,11 +237,19 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
+        {/* HEADER DASHBOARD (DIMODIFIKASI) */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Task Manager UTS 🚀</h1>
-          <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded">
-            Logout
-          </button>
+          <div>
+            {user && (
+              <span className="bg-gray-200 text-gray-800 px-3 py-2 rounded-full font-semibold mr-4">
+                Role: {user.role}
+              </span>
+            )}
+            <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded">
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Form Tambah Task */}
@@ -220,13 +263,13 @@ export default function Home() {
               value={newTaskTitle}
               onChange={e => setNewTaskTitle(e.target.value)}
             />
-            <button typeD="submit" className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">
+            <button type="submit" className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">
               Add Task
             </button>
           </form>
         </div>
 
-        {/* Daftar Task */}
+        {/* Daftar Task (DIMODIFIKASI) */}
         <div className="grid gap-4">
           {loading ? (
             <p>Loading tasks...</p>
@@ -237,9 +280,23 @@ export default function Home() {
                   <h3 className="font-bold text-lg">{task.title}</h3>
                   <p className="text-sm text-gray-500">Status: {task.status} • Team: {task.teamId}</p>
                 </div>
-                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                  {task.status}
-                </span>
+                
+                {/* --- LOGIKA MENAMPILKAN TOMBOL DELETE --- */}
+                {user?.role === 'admin' ? (
+                  // Tampilan untuk Admin
+                  <button
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+                  >
+                    Delete
+                  </button>
+                ) : (
+                  // Tampilan untuk User biasa
+                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    {task.status}
+                  </span>
+                )}
+                {/* ------------------------------------- */}
               </div>
             ))
           )}
