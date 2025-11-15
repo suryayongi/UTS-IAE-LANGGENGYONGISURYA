@@ -13,7 +13,7 @@ services:
     volumes:
       - ./services/rest-api:/app
       - /app/node_modules
-    command: npm run dev # Pastikan package.json rest-api punya --legacy-watch
+    command: npm run dev 
     networks:
       - microservices-network
 
@@ -28,7 +28,7 @@ services:
     volumes:
       - ./services/graphql-api:/app
       - /app/node_modules
-    command: npm run dev # Anda bisa tambahkan --legacy-watch di sini juga
+    command: npm run dev 
     networks:
       - microservices-network
 
@@ -48,7 +48,7 @@ services:
     volumes:
       - ./api-gateway:/app
       - /app/node_modules
-    command: npm run dev # Anda bisa tambahkan --legacy-watch di sini juga
+    command: npm run dev 
     networks:
       - microservices-network
 
@@ -61,10 +61,6 @@ services:
       - "3002:3000"
     environment:
       - NEXT_PUBLIC_API_GATEWAY_URL=http://localhost:3000
-      # ==========================================================
-      # INI PERBAIKANNYA:
-      # Arahkan ke API Gateway (port 3000), BUKAN port 4000
-      # ==========================================================
       - NEXT_PUBLIC_GRAPHQL_URL=http://localhost:3000/graphql
     depends_on:
       - api-gateway

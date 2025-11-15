@@ -82,9 +82,7 @@ const graphqlApiProxy = createProxyMiddleware({
       message: err.message
     });
   },
-  // ==========================================================
-  // INI ADALAH PERBAIKANNYA:
-  // ==========================================================
+
   onProxyReq: (proxyReq, req, res) => {
     // Teruskan data user yang sudah diautentikasi ke service GraphQL
     if (req.user) {
