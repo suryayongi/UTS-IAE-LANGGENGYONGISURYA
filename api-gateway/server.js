@@ -29,7 +29,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting (dimatikan sementara)
+
 // const limiter = rateLimit({
 //   windowMs: 15 * 60 * 1000, // 15 minutes
 //   max: 100, // limit each IP to 100 requests per windowMs
@@ -74,7 +74,7 @@ const restApiProxy = createProxyMiddleware({
 const graphqlApiProxy = createProxyMiddleware({
   target: process.env.GRAPHQL_API_URL || 'http://localhost:4000',
   changeOrigin: true,
-  ws: true, // Enable WebSocket proxying for subscriptions
+  ws: true,
   onError: (err, req, res) => {
     console.error('GraphQL API Proxy Error:', err.message);
     res.status(500).json({

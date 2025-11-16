@@ -201,10 +201,7 @@ router.delete('/:id', (req, res) => {
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
 
-  // 1. Cari user berdasarkan email
   const user = users.find(u => u.email === email);
-
-  // 2. Cek apakah user ada DAN password cocok
   if (!user || user.password !== password) {
     return res.status(401).json({
       error: 'Authentication failed',
@@ -223,7 +220,7 @@ router.post('/login', (req, res) => {
   // 4. Generate JWT Token dengan Private Key
   const token = jwt.sign(tokenPayload, privateKey, {
     algorithm: 'RS256',
-    expiresIn: '1h' // Token kadaluwarsa dalam 1 jam
+    expiresIn: '1h' 
   });
 
   // 5. Kirim response sukses dengan token
