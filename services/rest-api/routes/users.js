@@ -197,7 +197,7 @@ router.delete('/:id', (req, res) => {
   });
 });
 
-// POST /api/users/login - Login user dan generate JWT UTS
+// POST /api/users/login - Login user dan generate JWT 
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
 

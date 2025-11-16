@@ -6,9 +6,7 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { getMainDefinition } from '@apollo/client/utilities';
 
-// ==========================================================
-// INI PERBAIKANNYA (ganti localhost:4000 -> localhost:3000)
-// ==========================================================
+
 const httpLink = createHttpLink({
   uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
 });
@@ -18,7 +16,7 @@ const wsLink = typeof window !== 'undefined'
       url: (process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql').replace('http', 'ws'),
     }))
   : null;
-// ==========================================================
+
 
 const authLink = setContext((_, { headers }) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
