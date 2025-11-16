@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useSubscription, gql } from '@apollo/client';
 import axios from 'axios';
 
-// --- DEFINISI GRAPHQL (Sesuai Backend Baru) ---
 const GET_TASKS = gql`
   query GetTasks {
     tasks {
@@ -26,15 +25,15 @@ const CREATE_TASK = gql`
   }
 `;
 
-// --- TAMBAHAN BARU ---
+
 const DELETE_TASK = gql`
   mutation DeleteTask($id: ID!) {
     deleteTask(id: $id)
   }
 `;
-// ---------------------
 
-// Subscription untuk notifikasi real-time
+
+
 const TASK_CREATED_SUB = gql`
   subscription OnTaskCreated {
     taskCreated {
@@ -47,45 +46,45 @@ const TASK_CREATED_SUB = gql`
 
 export default function Home() {
   const [token, setToken] = useState('');
-  const [email, setEmail] = useState(''); // DIKOSONGKAN
-  const [password, setPassword] = useState(''); // DIKOSONGKAN
+  const [email, setEmail] = useState(''); 
+  const [password, setPassword] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [user, setUser] = useState<any>(null);
 
-  // --- TAMBAHAN BARU ---
+ 
   const [isRegistering, setIsRegistering] = useState(false);
   const [name, setName] = useState('');
-  // ---------------------
 
-  // Cek apakah sudah login saat buka web (DIMODIFIKASI)
+
+  
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user'); // Ambil data user
+    const savedUser = localStorage.getItem('user'); 
     if (savedToken && savedUser) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser)); // Simpan data user ke state
+      setUser(JSON.parse(savedUser)); 
     }
   }, []);
 
-  // GraphQL Hooks
+ 
   const { data: taskData, loading, refetch } = useQuery(GET_TASKS, {
-    skip: !token, // Jangan query kalau belum punya token (nanti error 401)
+    skip: !token, 
   });
 
   const [createTask] = useMutation(CREATE_TASK);
 
-  // --- TAMBAHAN BARU ---
-  const [deleteTask] = useMutation(DELETE_TASK, {
-    onCompleted: () => refetch(), // Refresh data setelah hapus
-    onError: (error) => alert(error.message) // Tampilkan error jika (user biasa)
-  });
-  // ---------------------
 
-  // Langsung listen subscription
+  const [deleteTask] = useMutation(DELETE_TASK, {
+    onCompleted: () => refetch(), 
+    onError: (error) => alert(error.message) 
+  });
+  
+
+
   useSubscription(TASK_CREATED_SUB, {
     onData: ({ data }) => {
       const newTask = data.data.taskCreated;
-      alert(`⚡ New Task Created: ${newTask.title}`);
+      alert(` New Task Created: ${newTask.title}`);
       refetch(); // Refresh data otomatis
     }
   });
@@ -93,19 +92,18 @@ export default function Home() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Tembak ke API Gateway -> REST Service
       const res = await axios.post('http://localhost:3000/api/users/login', {
         email,
         password
       });
       
       const receivedToken = res.data.token;
-      localStorage.setItem('token', receivedToken); // Simpan token di browser
-      localStorage.setItem('user', JSON.stringify(res.data.user)); // <-- TAMBAHAN INI
+      localStorage.setItem('token', receivedToken); 
+      localStorage.setItem('user', JSON.stringify(res.data.user));
       setToken(receivedToken);
       setUser(res.data.user);
       alert('Login Berhasil!');
-      window.location.reload(); // Refresh agar Apollo Client pakai token baru
+      window.location.reload(); 
     } catch (err) {
       alert('Login Gagal! Cek email/password.');
       console.error(err);
@@ -114,13 +112,13 @@ export default function Home() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user'); // <-- TAMBAHAN INI
+    localStorage.removeItem('user'); 
     setToken('');
     setUser(null);
     window.location.reload();
   };
 
-  // --- FUNGSI BARU ---
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -131,7 +129,7 @@ export default function Home() {
       });
       
       alert('Registrasi Berhasil! Silakan login.');
-      // Kembalikan ke mode login
+      
       setIsRegistering(false);
       setPassword('');
     } catch (err: any) {
@@ -139,7 +137,7 @@ export default function Home() {
       console.error(err);
     }
   };
-  // -------------------
+
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,7 +156,7 @@ export default function Home() {
     }
   };
 
-  // --- FUNGSI BARU ---
+
   const handleDeleteTask = async (taskId: string) => {
     if (confirm('Yakin mau hapus task ini? (Hanya Admin)')) {
       try {
@@ -169,24 +167,18 @@ export default function Home() {
       }
     }
   };
-  // -------------------
 
 
-  // --- TAMPILAN KALO BELUM LOGIN (SUDAH DIMODIFIKASI) ---
+
+
   if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white p-8 rounded shadow-md w-96">
-          
-          {/* --- JUDUL BERGANTI --- */}
           <h1 className="text-2xl font-bold mb-6 text-center">
             {isRegistering ? 'Register Akun Baru' : 'Login UTS'}
           </h1>
-
-          {/* --- FORM BERGANTI --- */}
           <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4">
-            
-            {/* Field Nama (hanya muncul saat register) */}
             {isRegistering && (
               <input
                 className="w-full border p-2 rounded"
@@ -212,13 +204,13 @@ export default function Home() {
               onChange={e => setPassword(e.target.value)}
             />
 
-            {/* Tombol BERGANTI */}
+           
             <button className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
               {isRegistering ? 'Register' : 'Login (Dapat Token)'}
             </button>
           </form>
 
-          {/* --- TOMBOL TOGGLE --- */}
+         
           <div className="text-center mt-4">
             <button 
               onClick={() => setIsRegistering(!isRegistering)} 
@@ -233,11 +225,10 @@ export default function Home() {
     );
   }
 
-  // --- TAMPILAN KALO SUDAH LOGIN (TASK MANAGER) ---
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
-        {/* HEADER DASHBOARD (DIMODIFIKASI) */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Task Manager UTS 🚀</h1>
           <div>
@@ -252,7 +243,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Form Tambah Task */}
+
         <div className="bg-white p-6 rounded-lg shadow mb-8">
           <h2 className="text-xl font-semibold mb-4">Create New Task</h2>
           <form onSubmit={handleCreateTask} className="flex gap-4">
@@ -269,7 +260,7 @@ export default function Home() {
           </form>
         </div>
 
-        {/* Daftar Task (DIMODIFIKASI) */}
+
         <div className="grid gap-4">
           {loading ? (
             <p>Loading tasks...</p>
@@ -281,7 +272,7 @@ export default function Home() {
                   <p className="text-sm text-gray-500">Status: {task.status} • Team: {task.teamId}</p>
                 </div>
                 
-                {/* --- LOGIKA MENAMPILKAN TOMBOL DELETE --- */}
+                
                 {user?.role === 'admin' ? (
                   // Tampilan untuk Admin
                   <button
@@ -296,7 +287,6 @@ export default function Home() {
                     {task.status}
                   </span>
                 )}
-                {/* ------------------------------------- */}
               </div>
             ))
           )}

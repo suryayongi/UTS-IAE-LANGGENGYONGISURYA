@@ -10,7 +10,7 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 
-// Load Public Key untuk verifikasi token uts
+// Load Public Key untuk verifikasi token 
 const publicKey = fs.readFileSync(path.join(__dirname, 'public.key'), 'utf8');
 
 const app = express();
@@ -37,7 +37,7 @@ app.use(cors({
 // });
 // app.use(limiter);
 
-// Health check endpoint
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
@@ -84,7 +84,6 @@ const graphqlApiProxy = createProxyMiddleware({
   },
 
   onProxyReq: (proxyReq, req, res) => {
-    // Teruskan data user yang sudah diautentikasi ke service GraphQL
     if (req.user) {
       proxyReq.setHeader('x-user-data', JSON.stringify(req.user));
     }
@@ -93,7 +92,7 @@ const graphqlApiProxy = createProxyMiddleware({
 });
 
 
-// Middleware Satpam (Otentikasi JWT)
+// Middleware Auth JWT 
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
   
@@ -108,7 +107,6 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, publicKey, { algorithms: ['RS256'] });
-    // Simpan data user di request AGAR BISA DITERUSKAN oleh onProxyReq
     req.user = decoded;
     next();
   } catch (error) {
